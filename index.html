@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive University Campus Map</title>
+    
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    
+    <!-- Leaflet.js JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+    
+    <style>
+        /* Basic styling for the page */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        /* The container for the map */
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+        }
+
+        /* Custom styling for Leaflet popups */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .leaflet-popup-content {
+            margin: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .leaflet-popup-content h3 {
+            margin: 0 0 10px;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .leaflet-popup-content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- This div will hold our map -->
+    <div id="map"></div>
+
+    <script>
+        // --- 1. DEFINE YOUR MAP DATA ---
+        
+        // This GeoJSON object defines the clickable areas (polygons) on your map.
+        // TIP: Use a tool like https://geojson.io to easily create these polygons by drawing on a map.
+        // Each "feature" is a clickable area.
+        const campusData = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Main Administration Building",
+                        "description": "The central hub for all administrative and student services. Office of the Registrar and Admissions are located here.",
+                        "image": "https://placehold.co/300x200/5D3FD3/FFFFFF?text=Admin+Building"
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-10, 30], [-10, 40], [10, 40], [10, 30], [-10, 30]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "University Library",
+                        "description": "A quiet place for study and research, holding over 200,000 volumes and digital archives.",
+                        "image": "https://placehold.co/300x200/4CAF50/FFFFFF?text=Library"
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [40, -10], [40, 10], [60, 10], [60, -10], [40, -10]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Central Park",
+                        "description": "A beautiful green space for students to relax, socialize, and enjoy outdoor activities.",
+                        "image": "https://placehold.co/300x200/FFC107/FFFFFF?text=Central+Park"
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-50, -50], [-50, -20], [-20, -20], [-20, -50], [-50, -50]
+                        ]]
+                    }
+                }
+            ]
+        };
+
+        // --- 2. INITIALIZE THE MAP ---
+
+        // Create a map instance in the 'map' div.
+        // We use CRS.Simple because we are not using a real-world map (like Google Maps).
+        // Our map uses simple x, y coordinates.
+        const map = L.map('map', {
+            crs: L.CRS.Simple,
+            minZoom: -1, // Allows zooming out further
+            maxZoom: 2,  // Allows zooming in closer
+        });
+        
+        // --- 3. ADD THE CUSTOM CAMPUS MAP IMAGE ---
+
+        // Define the boundaries of your image. These are the (y, x) coordinates
+        // of the southwest and northeast corners of your image overlay.
+        // You will need to adjust these values to fit your specific map image.
+        const bounds = [[-100, -100], [100, 100]];
+
+        // URL to your campus map image. Replace this with your own image URL.
+        const imageUrl = 'https://placehold.co/800x800/e0e0e0/757575?text=Your+Campus+Map+Image';
+        
+        // Create an image overlay and add it to the map.
+        L.imageOverlay(imageUrl, bounds).addTo(map);
+
+        // Set the map's view to fit the entire image bounds.
+        map.fitBounds(bounds);
+
+
+        // --- 4. ADD INTERACTIVE AREAS AND POPUPS ---
+        
+        // This function will be called for each feature in your GeoJSON data.
+        function onEachFeature(feature, layer) {
+            if (feature.properties && feature.properties.name) {
+                // Create the HTML content for the popup.
+                let popupContent = `<h3>${feature.properties.name}</h3>`;
+                if (feature.properties.description) {
+                    popupContent += `<p>${feature.properties.description}</p>`;
+                }
+                if (feature.properties.image) {
+                    popupContent += `<img src="${feature.properties.image}" alt="${feature.properties.name}">`;
+                }
+                
+                // Bind the popup to the layer (the polygon).
+                layer.bindPopup(popupContent);
+                
+                // Add mouseover and mouseout events for a nice highlighting effect.
+                layer.on({
+                    mouseover: function (e) {
+                        const hoveredLayer = e.target;
+                        hoveredLayer.setStyle({
+                            weight: 3,
+                            color: '#5D3FD3', // Highlight color
+                            fillOpacity: 0.5
+                        });
+                    },
+                    mouseout: function (e) {
+                        // Reset the style back to the original.
+                        geojsonLayer.resetStyle(e.target);
+                    }
+                });
+            }
+        }
+        
+        // Create the GeoJSON layer, applying styles and the onEachFeature function.
+        const geojsonLayer = L.geoJSON(campusData, {
+            style: function (feature) {
+                // Style for the polygons
+                return {
+                    fillColor: '#3498db',
+                    weight: 2,
+                    opacity: 1,
+                    color: 'white',
+                    dashArray: '3',
+                    fillOpacity: 0.3
+                };
+            },
+            onEachFeature: onEachFeature
+        }).addTo(map);
+
+    </script>
+
+</body>
+</html>
